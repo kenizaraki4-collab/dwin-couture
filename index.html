@@ -146,12 +146,6 @@
     color:var(--muted);
     font-size:12px;
   }
-  footer a{
-    color:var(--muted);
-    text-decoration:none;
-    border-bottom:1px solid var(--line);
-  }
-  footer a:hover{color:var(--charcoal);}
 
   .overlay{
     position:fixed;inset:0;
@@ -262,6 +256,11 @@
     z-index:80;
   }
   .toast.show{opacity:1;}
+  .admin-page-wrap{max-width:480px;margin:40px auto;padding:0 20px 60px;}
+  .back-link{
+    display:inline-block;margin-bottom:18px;font-size:13px;
+    color:var(--muted);text-decoration:none;border-bottom:1px solid var(--line);
+  }
 </style>
 </head>
 <body>
@@ -282,110 +281,19 @@
   <div id="emptyState" class="empty-state" style="display:none;">Aucun modèle pour le moment dans cette catégorie.</div>
 </div>
 
-<footer>
-  <a href="#" id="adminLink">Espace pro</a>
-</footer>
-
-<div class="overlay" id="loginOverlay">
-  <div class="modal">
-    <button class="close-x" data-close="loginOverlay">&times;</button>
-    <h2>Espace pro</h2>
-    <p class="sub">Réservé à Dwin Couture</p>
-    <label for="pwInput">Mot de passe</label>
-    <input type="password" id="pwInput" placeholder="••••••••">
-    <p class="error-msg" id="loginError">Mot de passe incorrect.</p>
-    <button class="primary-btn" id="loginBtn">Entrer</button>
-  </div>
-</div>
-
-<div class="overlay" id="adminOverlay">
-  <div class="modal" style="max-width:480px;">
-    <button class="close-x" data-close="adminOverlay">&times;</button>
-    <h2>Gérer la boutique</h2>
-    <p class="sub">Ajoute un modèle, choisis le numéro WhatsApp actif.</p>
-
-    <label>Numéro WhatsApp pour les commandes</label>
-    <div class="radio-row">
-      <label><input type="radio" name="waNumber" value="22899601819"> +228 99-60-18-19</label>
-      <label><input type="radio" name="waNumber" value="22891721745"> +228 91-72-17-45</label>
-    </div>
-
-    <hr class="divider">
-
-    <h2 style="font-size:19px;">Ajouter un modèle</h2>
-    <label for="prodName">Nom du modèle</label>
-    <input type="text" id="prodName" placeholder="Ex : Costume trois pièces">
-    <label for="prodCat">Catégorie</label>
-    <select id="prodCat">
-      <option value="hommes">Hommes</option>
-      <option value="femmes">Femmes</option>
-      <option value="enfants">Enfants</option>
-    </select>
-    <label for="prodImg">Photo</label>
-    <input type="file" id="prodImg" accept="image/*">
-    <button class="primary-btn" id="addProdBtn">Ajouter à la boutique</button>
-
-    <hr class="divider">
-
-    <h2 style="font-size:19px;">Modèles en ligne</h2>
-    <div class="admin-list" id="adminList"></div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
+<footer>Dwin Couture</footer>
 
 <script>
+
 const SUPABASE_URL = "https://fhpmshyylqflgxxxomgx.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_IP4RR3zcXFFGK08qFsjPlw_cNg_Iwfp";
 const BUCKET_NAME = "produit-image";
-const ADMIN_PASSWORD = "dwin2026";
-
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 
 let currentCat = "hommes";
 let products = [];
 let activeNumber = "22899601819";
-
-function showToast(msg){
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 2400);
-}
-
-function openOverlay(id){ document.getElementById(id).classList.add('show'); }
-function closeOverlay(id){ document.getElementById(id).classList.remove('show'); }
-
-document.querySelectorAll('[data-close]').forEach(btn=>{
-  btn.addEventListener('click', ()=> closeOverlay(btn.getAttribute('data-close')));
-});
-document.querySelectorAll('.overlay').forEach(ov=>{
-  ov.addEventListener('click', (e)=>{ if(e.target === ov) ov.classList.remove('show'); });
-});
-
-document.getElementById('adminLink').addEventListener('click', (e)=>{
-  e.preventDefault();
-  document.getElementById('pwInput').value = '';
-  document.getElementById('loginError').style.display = 'none';
-  openOverlay('loginOverlay');
-});
-
-document.getElementById('loginBtn').addEventListener('click', ()=>{
-  const val = document.getElementById('pwInput').value;
-  if(val === ADMIN_PASSWORD){
-    closeOverlay('loginOverlay');
-    renderAdminList();
-    document.querySelectorAll('input[name=waNumber]').forEach(r=>{
-      r.checked = (r.value === activeNumber);
-    });
-    openOverlay('adminOverlay');
-  } else {
-    document.getElementById('loginError').style.display = 'block';
-  }
-});
-document.getElementById('pwInput').addEventListener('keydown', (e)=>{
-  if(e.key === 'Enter') document.getElementById('loginBtn').click();
-});
 
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
@@ -395,92 +303,6 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     renderGrid();
   });
 });
-
-document.querySelectorAll('input[name=waNumber]').forEach(r=>{
-  r.addEventListener('change', async ()=>{
-    activeNumber = r.value;
-    const { error } = await sb.from('parametres')
-      .update({ numero_whatsapp_actif: activeNumber })
-      .eq('id', 1);
-    if(error){ console.error(error); showToast("Erreur d'enregistrement du numéro."); }
-    else showToast('Numéro WhatsApp mis à jour.');
-  });
-});
-
-document.getElementById('addProdBtn').addEventListener('click', async ()=>{
-  const name = document.getElementById('prodName').value.trim();
-  const cat = document.getElementById('prodCat').value;
-  const fileInput = document.getElementById('prodImg');
-  const file = fileInput.files[0];
-  const btn = document.getElementById('addProdBtn');
-
-  if(!name || !file){
-    showToast('Ajoute un nom et une photo.');
-    return;
-  }
-
-  btn.disabled = true;
-  btn.textContent = 'Envoi en cours...';
-
-  try{
-    const ext = file.name.split('.').pop();
-    const path = `${cat}/${Date.now()}_${Math.random().toString(36).slice(2,8)}.${ext}`;
-
-    const { error: uploadError } = await sb.storage
-      .from(BUCKET_NAME)
-      .upload(path, file);
-    if(uploadError) throw uploadError;
-
-    const { data: urlData } = sb.storage.from(BUCKET_NAME).getPublicUrl(path);
-    const imageUrl = urlData.publicUrl;
-
-    const { error: insertError } = await sb.from('produits')
-      .insert({ nom: name, categorie: cat, image_url: imageUrl });
-    if(insertError) throw insertError;
-
-    showToast('Modèle ajouté.');
-    document.getElementById('prodName').value = '';
-    fileInput.value = '';
-    await loadProducts();
-    renderAdminList();
-    renderGrid();
-  }catch(err){
-    console.error(err);
-    showToast("Erreur : le modèle n'a pas pu être ajouté.");
-  }finally{
-    btn.disabled = false;
-    btn.textContent = 'Ajouter à la boutique';
-  }
-});
-
-async function deleteProduct(id){
-  const { error } = await sb.from('produits').delete().eq('id', id);
-  if(error){
-    console.error(error);
-    showToast('Erreur lors de la suppression.');
-    return;
-  }
-  await loadProducts();
-  renderAdminList();
-  renderGrid();
-  showToast('Modèle supprimé.');
-}
-
-function renderAdminList(){
-  const list = document.getElementById('adminList');
-  list.innerHTML = '';
-  if(products.length === 0){
-    list.innerHTML = '<p style="color:var(--muted);font-size:13px;">Aucun modèle pour le moment.</p>';
-    return;
-  }
-  products.forEach(p=>{
-    const row = document.createElement('div');
-    row.className = 'row';
-    row.innerHTML = `<img src="${p.image_url}" alt=""><span class="name">${p.nom}<br><span class="cat">${p.categorie}</span></span><button data-id="${p.id}">Supprimer</button>`;
-    row.querySelector('button').addEventListener('click', ()=> deleteProduct(p.id));
-    list.appendChild(row);
-  });
-}
 
 function waLink(productName){
   const msg = "Bonjour, je suis intéressé(e) par le modèle : " + productName;
